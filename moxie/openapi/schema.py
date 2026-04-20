@@ -20,10 +20,25 @@ class SchemaCollector:
     def add_model(self, model_class: type[BaseModel]) -> str:
         name = model_class.__name__
         if name not in self.schemas:
-            # We use pydantic's built-in JSON schema generation
-            self.schemas[name] = model_class.model_json_schema()
-            # Remove $defs if any and move them to top level components/schemas later
-            # (Simplification: for now we just store the schema)
+            import json
+
+            schema = model_class.model_json_schema()
+
+            # Extract internal definitions ($defs) and move them to the top level
+            if "$defs" in schema:
+                defs = schema.pop("$defs")
+                for def_name, def_schema in defs.items():
+                    if def_name not in self.schemas:
+                        # Recursively handle nested refs in $defs
+                        def_schema_str = json.dumps(def_schema).replace(
+                            "#/$defs/", "#/components/schemas/"
+                        )
+                        self.schemas[def_name] = json.loads(def_schema_str)
+
+            # Replace internal refs with OpenAPI-compliant ones
+            schema_str = json.dumps(schema).replace("#/$defs/", "#/components/schemas/")
+            self.schemas[name] = json.loads(schema_str)
+
         return name
 
 def python_type_to_schema(tp: Any, collector: SchemaCollector) -> dict[str, Any]:
@@ -68,7 +83,9 @@ def python_type_to_schema(tp: Any, collector: SchemaCollector) -> dict[str, Any]
 
     if origin is dict or origin is dict:
         # We assume string keys for OpenAPI
-        value_schema = python_type_to_schema(args[1], collector) if len(args) > 1 else {}
+        value_schema = (
+            python_type_to_schema(args[1], collector) if len(args) > 1 else {}
+        )
         return {"type": "object", "additionalProperties": value_schema}
 
     if origin is Union:
@@ -81,9 +98,11 @@ def python_type_to_schema(tp: Any, collector: SchemaCollector) -> dict[str, Any]
                 if "type" in schema:
                     if isinstance(schema["type"], str):
                         schema["type"] = [schema["type"], "null"]
-                    elif isinstance(schema["type"], list):
-                        if "null" not in schema["type"]:
-                            schema["type"].append("null")
+                    elif (
+                        isinstance(schema["type"], list)
+                        and "null" not in schema["type"]
+                    ):
+                        schema["type"].append("null")
                 else:
                     return {"anyOf": [schema, {"type": "null"}]}
             return schema

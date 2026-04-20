@@ -20,7 +20,7 @@ class Moxie:
     def __init__(
         self,
         title: str = "Moxie API",
-        version: str = "2.0.0",
+        version: str = "2.0.3",
         description: str | None = None,
         openapi: bool = True,
         docs_url: str | None = "/docs",
@@ -82,22 +82,34 @@ class Moxie:
         self.middleware_defs.insert(0, (middleware_class, kwargs))
         self.asgi_app = None
 
-    def get(self, path: str, **kwargs: Any) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    def get(
+        self, path: str, **kwargs: Any
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         return self.router.get(path, **kwargs)
 
-    def post(self, path: str, **kwargs: Any) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    def post(
+        self, path: str, **kwargs: Any
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         return self.router.post(path, **kwargs)
 
-    def put(self, path: str, **kwargs: Any) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    def put(
+        self, path: str, **kwargs: Any
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         return self.router.put(path, **kwargs)
 
-    def delete(self, path: str, **kwargs: Any) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    def delete(
+        self, path: str, **kwargs: Any
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         return self.router.delete(path, **kwargs)
 
-    def patch(self, path: str, **kwargs: Any) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    def patch(
+        self, path: str, **kwargs: Any
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         return self.router.patch(path, **kwargs)
 
-    def ws(self, path: str, **kwargs: Any) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    def ws(
+        self, path: str, **kwargs: Any
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         return self.router.ws(path, **kwargs)
 
     def install(self, plugin: Plugin) -> None:
@@ -110,8 +122,17 @@ class Moxie:
             prefix_router = Router(prefix=path)
             prefix_router.mount(app)
             self.router.mount(prefix_router)
+        elif hasattr(app, "router") and isinstance(app.router, Router):
+            # Support mounting other Moxie apps
+            prefix_router = Router(prefix=path)
+            prefix_router.mount(app.router)
+            self.router.mount(prefix_router)
         else:
-            pass
+            # Fallback for raw ASGI apps or other mountable objects
+            # For now, we don't have a generic ASGI mount, but we should at least log it
+            logger.warning(
+                f"Mounting non-Moxie app at {path} is not fully supported yet."
+            )
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if self.asgi_app is None:
@@ -166,7 +187,9 @@ class Moxie:
                     await send({"type": "lifespan.shutdown.complete"})
                 except Exception as exc:
                     logger.error(f"Shutdown failed: {exc}")
-                    await send({"type": "lifespan.shutdown.failed", "message": str(exc)})
+                    await send(
+                        {"type": "lifespan.shutdown.failed", "message": str(exc)}
+                    )
                 break
 
     async def handle_http(self, scope: Scope, receive: Receive, send: Send) -> None:
@@ -186,11 +209,9 @@ class Moxie:
                 await guard.check(request)
 
             background_tasks = BackgroundTasks()
-            kwargs = await self.di_resolver.resolve_handler_deps(route.handler, request, path_params)
-            sig = inspect.signature(route.handler)
-            for name, param in sig.parameters.items():
-                if param.annotation is BackgroundTasks:
-                    kwargs[name] = background_tasks
+            kwargs = await self.di_resolver.resolve_handler_deps(
+                route.handler, request, path_params, background_tasks=background_tasks
+            )
 
             if inspect.iscoroutinefunction(route.handler):
                 response_data = await route.handler(**kwargs)
@@ -217,7 +238,9 @@ class Moxie:
             response = PlainTextResponse("Internal Server Error", status_code=500)
             await response(send)
 
-    async def handle_websocket(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def handle_websocket(
+        self, scope: Scope, receive: Receive, send: Send
+    ) -> None:
         ws = WebSocket(scope, receive, send)
         path = scope["path"]
         
@@ -231,11 +254,9 @@ class Moxie:
             for guard in route.guards:
                 await guard.check(ws) # type: ignore (Guards handle Request or WebSocket)
 
-            kwargs = await self.di_resolver.resolve_handler_deps(route.handler, ws, path_params)
-            sig = inspect.signature(route.handler)
-            for name, param in sig.parameters.items():
-                if param.annotation is WebSocket:
-                    kwargs[name] = ws
+            kwargs = await self.di_resolver.resolve_handler_deps(
+                route.handler, ws, path_params
+            )
 
             if inspect.iscoroutinefunction(route.handler):
                 await route.handler(**kwargs)

@@ -32,11 +32,31 @@ class BaseMiddleware:
     async def dispatch(self, request: Request, call_next: CallNext) -> Response:
         raise NotImplementedError()
 
-    async def _execute_app_and_capture_response(self, scope: Any, receive: Any) -> Response:
-        # Placeholder for the actual capture logic
-        # For Moxie, we might want a different middleware pattern that is more ASGI-native
-        # or we follow the dispatch pattern by wrapping the handler execution.
-        pass
+    async def _execute_app_and_capture_response(
+        self, scope: Any, receive: Any
+    ) -> Response:
+        response_status = 200
+        response_headers: list[tuple[bytes, bytes]] = []
+        response_body = b""
+
+        async def send(message: dict[str, Any]) -> None:
+            nonlocal response_status, response_headers, response_body
+            if message["type"] == "http.response.start":
+                response_status = message["status"]
+                response_headers = message["headers"]
+            elif message["type"] == "http.response.body":
+                response_body += message.get("body", b"")
+
+        await self.app(scope, receive, send)
+
+        return Response(
+            content=response_body,
+            status_code=response_status,
+            headers={
+                k.decode("latin-1"): v.decode("latin-1")
+                for k, v in response_headers
+            },
+        )
 
 # Recommended pattern for Moxie: Simple ASGI middleware
 class ASGIMiddleware:

@@ -31,7 +31,10 @@ class Request:
     def query_params(self) -> dict[str, Any]:
         from urllib.parse import parse_qs
         query_string = self.scope.get("query_string", b"").decode("utf-8")
-        return {k: v[0] if len(v) == 1 else v for k, v in parse_qs(query_string).items()}
+        return {
+            k: v[0] if len(v) == 1 else v
+            for k, v in parse_qs(query_string).items()
+        }
 
     @property
     def headers(self) -> dict[str, str]:
@@ -91,7 +94,9 @@ class WebSocket:
             return TypeAdapter(model).validate_python(data)
         return data
 
-    async def iter_json(self, model: type[T] | None = None) -> AsyncIterator[dict[str, Any] | T]:
+    async def iter_json(
+        self, model: type[T] | None = None
+    ) -> AsyncIterator[dict[str, Any] | T]:
         while True:
             try:
                 yield await self.receive_json(model)

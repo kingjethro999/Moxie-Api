@@ -13,7 +13,13 @@ def openapi() -> None:
 @openapi.command()
 @click.argument("app_path")
 @click.option("--output", "-o", type=click.Path(), help="Output file path.")
-@click.option("--format", "-f", type=click.Choice(["json", "yaml"]), default="json", help="Output format.")
+@click.option(
+    "--format",
+    "-f",
+    type=click.Choice(["json", "yaml"]),
+    default="json",
+    help="Output format.",
+)
 def export(app_path: str, output: str, format: str) -> None:
     """Export OpenAPI specification to a file."""
     try:

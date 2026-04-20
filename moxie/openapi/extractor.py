@@ -16,7 +16,8 @@ class OperationExtractor:
         docstring = inspect.getdoc(handler) or ""
         
         # 1. Parse docstring
-        doc_summary, doc_description, doc_params, doc_returns, doc_raises = self._parse_google_docstring(docstring)
+        parsed = self._parse_google_docstring(docstring)
+        doc_summary, doc_description, doc_params, doc_returns, doc_raises = parsed
         
         # 2. Prefer route metadata over docstring
         summary = route.summary or doc_summary
@@ -26,14 +27,19 @@ class OperationExtractor:
         request_body = None
         
         # Extract path parameters from route pattern
-        path_param_names = re.findall(r"\{([a-zA-Z_][a-zA-Z0-9_]*)(?::[a-zA-Z_][a-zA-Z0-9_]*)?\}", route.path)
+        path_param_names = re.findall(
+            r"\{([a-zA-Z_][a-zA-Z0-9_]*)(?::[a-zA-Z_][a-zA-Z0-9_]*)?\}", route.path
+        )
         
         for name, param in sig.parameters.items():
             # Skip special types
             from moxie.background import BackgroundTasks
             from moxie.request import Request
             # Simplified check for special types
-            if name in ["request", "ws", "tasks"] or param.annotation in [Request, BackgroundTasks]:
+            if name in ["request", "ws", "tasks"] or param.annotation in [
+                Request,
+                BackgroundTasks,
+            ]:
                 continue
                 
             param_description = doc_params.get(name, "")
@@ -46,12 +52,16 @@ class OperationExtractor:
                     "description": param_description,
                     "schema": python_type_to_schema(param.annotation, self.collector)
                 })
-            elif self._is_body_type(param.annotation) and any(m in ["POST", "PUT", "PATCH"] for m in route.methods):
+            elif self._is_body_type(param.annotation) and any(
+                m in ["POST", "PUT", "PATCH"] for m in route.methods
+            ):
                 if request_body is None:
                     request_body = {
                         "content": {
                             "application/json": {
-                                "schema": python_type_to_schema(param.annotation, self.collector)
+                                "schema": python_type_to_schema(
+                                    param.annotation, self.collector
+                                )
                             }
                         },
                         "required": True,
@@ -78,7 +88,9 @@ class OperationExtractor:
                 "description": doc_returns or "Successful Response",
                 "content": {
                     "application/json": {
-                        "schema": python_type_to_schema(sig.return_annotation, self.collector)
+                        "schema": python_type_to_schema(
+                            sig.return_annotation, self.collector
+                        )
                     }
                 }
             }
@@ -110,34 +122,49 @@ class OperationExtractor:
 
         return operation
 
-    def _parse_google_docstring(self, docstring: str) -> tuple[str, str, dict[str, str], str, dict[int, str]]:
+    def _parse_google_docstring(
+        self, docstring: str
+    ) -> tuple[str, str, dict[str, str], str, dict[int, str]]:
         """Parses a Google-style docstring."""
         if not docstring:
             return "", "", {}, "", {}
 
-        sections = re.split(r"\n\s*(Args|Returns|Raises):\s*\n", docstring, flags=re.IGNORECASE)
+        sections = re.split(
+            r"\n\s*(Args|Returns|Raises):\s*\n", docstring, flags=re.IGNORECASE
+        )
         
         main_body = sections[0].strip()
         summary = main_body.split("\n")[0] if main_body else ""
-        description = "\n".join(main_body.split("\n")[1:]).strip() if "\n" in main_body else ""
+        description = (
+            "\n".join(main_body.split("\n")[1:]).strip()
+            if "\n" in main_body
+            else ""
+        )
         
         params = {}
         returns = ""
         raises = {}
         
-        current_section = None
         for i in range(1, len(sections), 2):
             section_name = sections[i].lower()
             section_content = sections[i+1]
             
             if section_name == "args":
-                for match in re.finditer(r"^\s*([a-zA-Z_][a-zA-Z0-9_]*):\s*(.*)$", section_content, re.MULTILINE):
+                for match in re.finditer(
+                    r"^\s*([a-zA-Z_][a-zA-Z0-9_]*):\s*(.*)$",
+                    section_content,
+                    re.MULTILINE,
+                ):
                     name, desc = match.groups()
                     params[name] = desc.strip()
             elif section_name == "returns":
                 returns = section_content.strip()
             elif section_name == "raises":
-                for match in re.finditer(r"^\s*(?:HTTPException\((\d+)\)|(\w+)):\s*(.*)$", section_content, re.MULTILINE):
+                for match in re.finditer(
+                    r"^\s*(?:HTTPException\((\d+)\)|(\w+)):\s*(.*)$",
+                    section_content,
+                    re.MULTILINE,
+                ):
                     code, exc_name, desc = match.groups()
                     if code:
                         raises[int(code)] = desc.strip()
@@ -153,8 +180,10 @@ class OperationExtractor:
         origin = get_origin(tp)
         if origin is Union:
             args = get_args(tp)
-            return any(inspect.isclass(a) and issubclass(a, BaseModel) for a in args if a is not type(None))
+            return any(
+                inspect.isclass(a) and issubclass(a, BaseModel)
+                for a in args
+                if a is not type(None)
+            )
             
-        if inspect.isclass(tp) and issubclass(tp, BaseModel):
-            return True
-        return False
+        return bool(inspect.isclass(tp) and issubclass(tp, BaseModel))

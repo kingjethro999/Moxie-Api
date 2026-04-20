@@ -2,6 +2,7 @@ import inspect
 from collections.abc import Callable
 from typing import Any
 
+from moxie.background import BackgroundTasks
 from moxie.di.depends import Dependency
 
 
@@ -71,6 +72,7 @@ class DependencyResolver:
         handler: Callable[..., Any],
         request: Any,
         path_params: dict[str, Any],
+        background_tasks: BackgroundTasks | None = None,
     ) -> dict[str, Any]:
         sig = inspect.signature(handler)
         resolved_values: dict[str, Any] = {}
@@ -85,6 +87,8 @@ class DependencyResolver:
                 )
             elif param.annotation is type(request):
                 resolved_values[name] = request
+            elif param.annotation is BackgroundTasks:
+                resolved_values[name] = background_tasks
             # Add more inference logic here later (e.g. Query, Body)
 
         return resolved_values

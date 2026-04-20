@@ -60,29 +60,78 @@ class TrieNode:
 
 class RouterMatcher:
     """Trie-based router for fast path resolution."""
+
     def __init__(self) -> None:
         self.root = TrieNode()
 
-    def add_route(self, path: str, methods: list[str], handler: Any) -> None:
-        # Simple implementation using regex matcher for now as per CLAUDE.md requirements
-        # but structured for easy expansion.
-        pass
+    def add_route(self, path: str, methods: list[str], route_obj: Any) -> None:
+        node = self.root
+        # Clean path and split
+        parts = path.strip("/").split("/")
+        if path == "/":
+            parts = [""]
 
-# For simplicity and to meet the "compiled trie" goal while keeping implementation manageable,
-# I'll implement a simplified version that handles both static and dynamic segments.
+        for part in parts:
+            if part.startswith("{") and part.endswith("}"):
+                inner = part[1:-1]
+                if ":" in inner:
+                    name, type_name = inner.split(":", 1)
+                else:
+                    name, type_name = inner, "str"
+
+                # We use ":" as a key for param nodes to distinguish from static segments
+                if ":" not in node.children:
+                    param_node = TrieNode()
+                    param_node.is_param = True
+                    param_node.param_name = name
+                    converter_class = CONVERTERS.get(type_name, CONVERTERS["str"])
+                    param_node.param_converter = converter_class()
+                    node.children[":"] = param_node
+                node = node.children[":"]
+            else:
+                if part not in node.children:
+                    node.children[part] = TrieNode()
+                node = node.children[part]
+
+        for method in methods:
+            node.routes[method.upper()] = route_obj
+
+    def resolve(self, path: str, method: str) -> tuple[Any, dict[str, Any]] | None:
+        parts = path.strip("/").split("/")
+        if path == "/":
+            parts = [""]
+
+        params = {}
+        node = self.root
+
+        for part in parts:
+            if part in node.children:
+                node = node.children[part]
+            elif ":" in node.children:
+                node = node.children[":"]
+                try:
+                    if node.param_converter:
+                        val = node.param_converter.convert(part)
+                        params[node.param_name] = val
+                    else:
+                        params[node.param_name] = part
+                except ValueError:
+                    return None
+            else:
+                return None
+
+        route_obj = node.routes.get(method.upper()) or node.routes.get("ANY")
+        if route_obj:
+            return route_obj, params
+        return None
+
 
 class CompiledRouter:
     def __init__(self) -> None:
-        self.routes: list[tuple[RouteMatcher, Any]] = []
+        self.matcher = RouterMatcher()
 
     def add_route(self, route: Any) -> None:
-        self.routes.append((RouteMatcher(route.path), route))
+        self.matcher.add_route(route.path, route.methods, route)
 
     def resolve(self, path: str, method: str) -> tuple[Any, dict[str, Any]] | None:
-        method = method.upper()
-        for matcher, route in self.routes:
-            if method in route.methods or "ANY" in route.methods:
-                params = matcher.match(path)
-                if params is not None:
-                    return route, params
-        return None
+        return self.matcher.resolve(path, method)

@@ -113,25 +113,37 @@ class Router:
         self.routes.append(WebSocketRoute(full_path, handler, name, tags, all_guards))
         self._compiled_router = None
 
-    def ws(self, path: str, **kwargs: Any) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    def ws(
+        self, path: str, **kwargs: Any
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         def decorator(handler: Callable[..., Any]) -> Callable[..., Any]:
             self.add_ws_route(path, handler, **kwargs)
             return handler
         return decorator
 
-    def get(self, path: str, **kwargs: Any) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    def get(
+        self, path: str, **kwargs: Any
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         return self._add_method_route(path, ["GET"], **kwargs)
 
-    def post(self, path: str, **kwargs: Any) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    def post(
+        self, path: str, **kwargs: Any
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         return self._add_method_route(path, ["POST"], **kwargs)
 
-    def put(self, path: str, **kwargs: Any) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    def put(
+        self, path: str, **kwargs: Any
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         return self._add_method_route(path, ["PUT"], **kwargs)
 
-    def delete(self, path: str, **kwargs: Any) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    def delete(
+        self, path: str, **kwargs: Any
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         return self._add_method_route(path, ["DELETE"], **kwargs)
 
-    def patch(self, path: str, **kwargs: Any) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    def patch(
+        self, path: str, **kwargs: Any
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         return self._add_method_route(path, ["PATCH"], **kwargs)
 
     def _add_method_route(
@@ -144,6 +156,13 @@ class Router:
 
     def mount(self, router: "Router") -> None:
         for route in router.routes:
+            # Create a copy or update path to include current prefix
+            # Note: we update the path of the route object itself here
+            # but since Router.mount is usually called during setup, this is
+            # mostly fine.
+            # In a more robust version, we'd clone the route object.
+            if self.prefix and not route.path.startswith(self.prefix):
+                route.path = self.prefix + route.path
             self.routes.append(route)
             self._compiled_router = None
 

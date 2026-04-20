@@ -4,7 +4,9 @@ from moxie.request import Request
 
 
 class BearerTokenGuard(BaseGuard):
-    def __init__(self, scheme_name: str = "BearerAuth", description: str | None = None) -> None:
+    def __init__(
+        self, scheme_name: str = "BearerAuth", description: str | None = None
+    ) -> None:
         self.scheme_name = scheme_name
         self.openapi_security_scheme = {
             "type": "http",

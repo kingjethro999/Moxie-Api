@@ -26,7 +26,8 @@ def get_swagger_ui_html(
     
     # We need to handle presets separately because they are JS objects, not strings
     # but for simplicity we can just dump the ones that are strings and then 
-    # replace them in the JS if needed, or just hardcode the presets if they are standard.
+    # replace them in the JS if needed, or just hardcode the presets if they
+    # are standard.
     
     # Actually, the most robust way is to build the JS object carefully.
     
@@ -58,7 +59,9 @@ def get_swagger_ui_html(
         background-color: #161b22;
         border-bottom: 1px solid #30363d;
     }}
-    .swagger-ui .info .title, .swagger-ui .opblock-tag, .swagger-ui .opblock .opblock-summary-operation-id {{
+    .swagger-ui .info .title,
+    .swagger-ui .opblock-tag,
+    .swagger-ui .opblock .opblock-summary-operation-id {{
         color: #f0f6fc;
     }}
     .swagger-ui .scheme-container {{
@@ -144,7 +147,8 @@ def get_redoc_html(
     <title>{title}</title>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,700|Roboto:300,400,700" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,700|Roboto:300,400,700"
+          rel="stylesheet">
     <link rel="shortcut icon" href="{redoc_favicon_url}">
     <style>body {{ margin: 0; padding: 0; }}</style>
     </head>
