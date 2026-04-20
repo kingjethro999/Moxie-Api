@@ -1,0 +1,48 @@
+[project]
+name = "moxie-api"
+version = "2.0.1"
+description = "A fast, expressive, Python-native web framework with auto OpenAPI docs."
+authors = [
+    { name = "Moxie Team" }
+]
+dependencies = [
+    "anyio>=4.0.0",
+    "httptools>=0.6.0",
+    "h11>=0.14.0",
+    "pydantic>=2.0.0",
+    "PyYAML>=6.0.0",
+    "click>=8.1.0",
+]
+requires-python = ">=3.11"
+license = { text = "MIT" }
+
+[tool.setuptools]
+packages = ["moxie", "moxie_cli", "moxie.routing", "moxie.openapi", "moxie.middleware", "moxie.di", "moxie.guards", "moxie.utils"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "httpx>=0.24.0",
+    "ruff>=0.1.0",
+    "pyright>=1.1.330",
+    "uvicorn>=0.23.0",
+]
+full = [
+    "moxie-api[dev]",
+]
+
+[project.scripts]
+moxie = "moxie_cli.main:main"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+line-length = 88
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.pyright]
+typeCheckingMode = "strict"
+include = ["moxie"]
