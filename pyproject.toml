@@ -2,6 +2,7 @@
 name = "moxie-api"
 version = "2.0.1"
 description = "A fast, expressive, Python-native web framework with auto OpenAPI docs."
+readme = "README.md"
 authors = [
     { name = "Moxie Team" }
 ]

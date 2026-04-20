@@ -59,14 +59,6 @@ moxie dev app:app
 
 Now visit `http://127.0.0.1:8000/docs` to see your interactive documentation!
 
-## 🎨 Visual Identity
-
-Moxie is designed to look as good as it performs. Check out our modern landing page design:
-
-<p align="center">
-  <img src="/home/king/.gemini/antigravity/brain/0ac8a619-0548-43fc-8454-4e58077e06af/moxie_landing_page_mockup_1776701618859.png" alt="Moxie Landing Page" width="800">
-</p>
-
 ## 🤝 Contributing
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for more details.
