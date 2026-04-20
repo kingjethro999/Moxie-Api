@@ -1,4 +1,5 @@
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 OPENAPI_VERSION = "3.1.0"
@@ -6,30 +7,30 @@ OPENAPI_VERSION = "3.1.0"
 class Info(BaseModel):
     title: str
     version: str
-    description: Optional[str] = None
+    description: str | None = None
 
 class Contact(BaseModel):
-    name: Optional[str] = None
-    url: Optional[str] = None
-    email: Optional[str] = None
+    name: str | None = None
+    url: str | None = None
+    email: str | None = None
 
 class License(BaseModel):
     name: str
-    url: Optional[str] = None
+    url: str | None = None
 
 class ExternalDocs(BaseModel):
     url: str
-    description: Optional[str] = None
+    description: str | None = None
 
 class Tag(BaseModel):
     name: str
-    description: Optional[str] = None
-    externalDocs: Optional[ExternalDocs] = None
+    description: str | None = None
+    externalDocs: ExternalDocs | None = None
 
 class OpenAPI(BaseModel):
     openapi: str = OPENAPI_VERSION
     info: Info
-    paths: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
-    components: Dict[str, Any] = Field(default_factory=dict)
-    tags: List[Tag] = Field(default_factory=list)
-    externalDocs: Optional[ExternalDocs] = None
+    paths: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    components: dict[str, Any] = Field(default_factory=dict)
+    tags: list[Tag] = Field(default_factory=list)
+    externalDocs: ExternalDocs | None = None

@@ -1,6 +1,8 @@
 import uuid
 from typing import Any
+
 from moxie.middleware.base import ASGIMiddleware
+
 
 class RequestIDMiddleware(ASGIMiddleware):
     async def __call__(self, scope: Any, receive: Any, send: Any) -> None:

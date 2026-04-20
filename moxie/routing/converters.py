@@ -1,5 +1,5 @@
 import uuid
-from typing import Any, Dict, Protocol, Type, TypeVar
+from typing import Any, Protocol, TypeVar
 
 T = TypeVar("T")
 
@@ -32,7 +32,7 @@ class PathConverter:
     def convert(self, value: str) -> str:
         return value
 
-CONVERTERS: Dict[str, Type[Converter]] = {
+CONVERTERS: dict[str, type[Converter]] = {
     "str": StringConverter,
     "int": IntConverter,
     "float": FloatConverter,

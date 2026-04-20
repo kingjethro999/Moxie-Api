@@ -1,16 +1,19 @@
 import inspect
-from typing import Any, Callable, Dict, Optional, Type
+from collections.abc import Callable
+from typing import Any
+
 from moxie.di.depends import Dependency
+
 
 class DependencyContainer:
     def __init__(self) -> None:
-        self.singleton_cache: Dict[Callable[..., Any], Any] = {}
+        self.singleton_cache: dict[Callable[..., Any], Any] = {}
 
     async def resolve(
         self,
         dependency_callable: Callable[..., Any],
-        request_cache: Dict[Callable[..., Any], Any],
-        path_params: Dict[str, Any],
+        request_cache: dict[Callable[..., Any], Any],
+        path_params: dict[str, Any],
         request: Any,
     ) -> Any:
         # Check if it's already in request cache
@@ -23,7 +26,7 @@ class DependencyContainer:
 
         # Inspect the callable
         sig = inspect.signature(dependency_callable)
-        values: Dict[str, Any] = {}
+        values: dict[str, Any] = {}
 
         for name, param in sig.parameters.items():
             # Handle special types first
@@ -67,11 +70,11 @@ class DependencyResolver:
         self,
         handler: Callable[..., Any],
         request: Any,
-        path_params: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        path_params: dict[str, Any],
+    ) -> dict[str, Any]:
         sig = inspect.signature(handler)
-        resolved_values: Dict[str, Any] = {}
-        request_cache: Dict[Callable[..., Any], Any] = {}
+        resolved_values: dict[str, Any] = {}
+        request_cache: dict[Callable[..., Any], Any] = {}
 
         for name, param in sig.parameters.items():
             if name in path_params:

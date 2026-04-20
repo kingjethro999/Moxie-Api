@@ -1,7 +1,8 @@
 import json
-import time
 import logging
+import time
 from typing import Any
+
 from moxie.middleware.base import ASGIMiddleware
 
 logger = logging.getLogger("moxie.request")

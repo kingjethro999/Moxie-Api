@@ -1,5 +1,6 @@
 import json
 
+
 def get_swagger_ui_html(
     *,
     openapi_url: str,

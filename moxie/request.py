@@ -1,6 +1,9 @@
 from __future__ import annotations
+
 import json
-from typing import Any, AsyncIterator, Dict, Optional, Type, TypeVar, Union
+from collections.abc import AsyncIterator
+from typing import Any, TypeVar
+
 from moxie.types import Receive, Scope, Send
 
 T = TypeVar("T")
@@ -11,10 +14,10 @@ class Request:
     def __init__(self, scope: Scope, receive: Receive) -> None:
         self.scope = scope
         self._receive = receive
-        self._body: Optional[bytes] = None
+        self._body: bytes | None = None
         self._json: Any = None
-        self._form: Optional[Dict[str, Any]] = None
-        self._headers: Optional[Dict[str, str]] = None
+        self._form: dict[str, Any] | None = None
+        self._headers: dict[str, str] | None = None
 
     @property
     def method(self) -> str:
@@ -25,13 +28,13 @@ class Request:
         return self.scope["path"]
 
     @property
-    def query_params(self) -> Dict[str, Any]:
+    def query_params(self) -> dict[str, Any]:
         from urllib.parse import parse_qs
         query_string = self.scope.get("query_string", b"").decode("utf-8")
         return {k: v[0] if len(v) == 1 else v for k, v in parse_qs(query_string).items()}
 
     @property
-    def headers(self) -> Dict[str, str]:
+    def headers(self) -> dict[str, str]:
         if self._headers is None:
             self._headers = {
                 k.decode("latin-1").lower(): v.decode("latin-1")
@@ -64,9 +67,9 @@ class WebSocket:
         self.scope = scope
         self._receive = receive
         self._send = send
-        self.state: Dict[str, Any] = {}
+        self.state: dict[str, Any] = {}
 
-    async def accept(self, subprotocol: Optional[str] = None) -> None:
+    async def accept(self, subprotocol: str | None = None) -> None:
         message = {"type": "websocket.accept"}
         if subprotocol:
             message["subprotocol"] = subprotocol
@@ -80,7 +83,7 @@ class WebSocket:
         message = await self._receive()
         return message["bytes"]
 
-    async def receive_json(self, model: Optional[Type[T]] = None) -> Union[Dict[str, Any], T]:
+    async def receive_json(self, model: type[T] | None = None) -> dict[str, Any] | T:
         message = await self._receive()
         data = json.loads(message["text"])
         if model:
@@ -88,7 +91,7 @@ class WebSocket:
             return TypeAdapter(model).validate_python(data)
         return data
 
-    async def iter_json(self, model: Optional[Type[T]] = None) -> AsyncIterator[Union[Dict[str, Any], T]]:
+    async def iter_json(self, model: type[T] | None = None) -> AsyncIterator[dict[str, Any] | T]:
         while True:
             try:
                 yield await self.receive_json(model)

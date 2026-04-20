@@ -1,9 +1,10 @@
-import sys
 import click
+
 from moxie_cli.commands.dev import dev
-from moxie_cli.commands.routes import routes
-from moxie_cli.commands.openapi import openapi
 from moxie_cli.commands.new import new
+from moxie_cli.commands.openapi import openapi
+from moxie_cli.commands.routes import routes
+
 
 @click.group()
 def main() -> None:

@@ -1,6 +1,9 @@
-from typing import Any, Callable, Dict, List, Optional, Sequence, Union
-from moxie.routing.matcher import CompiledRouter
+from collections.abc import Callable
+from typing import Any
+
 from moxie.guards.base import Guard
+from moxie.routing.matcher import CompiledRouter
+
 
 class Route:
     __slots__ = (
@@ -22,16 +25,16 @@ class Route:
         self,
         path: str,
         handler: Callable[..., Any],
-        methods: List[str],
-        name: Optional[str] = None,
-        tags: Optional[List[str]] = None,
-        guards: Optional[List[Guard]] = None,
-        summary: Optional[str] = None,
-        description: Optional[str] = None,
-        operation_id: Optional[str] = None,
+        methods: list[str],
+        name: str | None = None,
+        tags: list[str] | None = None,
+        guards: list[Guard] | None = None,
+        summary: str | None = None,
+        description: str | None = None,
+        operation_id: str | None = None,
         deprecated: bool = False,
         include_in_schema: bool = True,
-        responses: Optional[Dict[Union[int, str], Dict[str, Any]]] = None,
+        responses: dict[int | str, dict[str, Any]] | None = None,
     ) -> None:
         self.path = path
         self.handler = handler
@@ -51,9 +54,9 @@ class WebSocketRoute(Route):
         self,
         path: str,
         handler: Callable[..., Any],
-        name: Optional[str] = None,
-        tags: Optional[List[str]] = None,
-        guards: Optional[List[Guard]] = None,
+        name: str | None = None,
+        tags: list[str] | None = None,
+        guards: list[Guard] | None = None,
     ) -> None:
         super().__init__(
             path, 
@@ -66,20 +69,20 @@ class WebSocketRoute(Route):
         )
 
 class Router:
-    def __init__(self, prefix: str = "", guards: Optional[List[Guard]] = None) -> None:
+    def __init__(self, prefix: str = "", guards: list[Guard] | None = None) -> None:
         self.prefix = prefix
-        self.routes: List[Union[Route, WebSocketRoute]] = []
+        self.routes: list[Route | WebSocketRoute] = []
         self.guards = guards or []
-        self._compiled_router: Optional[CompiledRouter] = None
+        self._compiled_router: CompiledRouter | None = None
 
     def add_route(
         self,
         path: str,
         handler: Callable[..., Any],
-        methods: List[str],
-        name: Optional[str] = None,
-        tags: Optional[List[str]] = None,
-        guards: Optional[List[Guard]] = None,
+        methods: list[str],
+        name: str | None = None,
+        tags: list[str] | None = None,
+        guards: list[Guard] | None = None,
         **openapi_kwargs: Any,
     ) -> None:
         full_path = self.prefix + path
@@ -101,9 +104,9 @@ class Router:
         self,
         path: str,
         handler: Callable[..., Any],
-        name: Optional[str] = None,
-        tags: Optional[List[str]] = None,
-        guards: Optional[List[Guard]] = None,
+        name: str | None = None,
+        tags: list[str] | None = None,
+        guards: list[Guard] | None = None,
     ) -> None:
         full_path = self.prefix + path
         all_guards = self.guards + (guards or [])
@@ -132,7 +135,7 @@ class Router:
         return self._add_method_route(path, ["PATCH"], **kwargs)
 
     def _add_method_route(
-        self, path: str, methods: List[str], **kwargs: Any
+        self, path: str, methods: list[str], **kwargs: Any
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         def decorator(handler: Callable[..., Any]) -> Callable[..., Any]:
             self.add_route(path, handler, methods, **kwargs)

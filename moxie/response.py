@@ -1,6 +1,9 @@
 import json
-from typing import Any, AsyncIterable, Dict, Iterable, Optional, Union
+from collections.abc import AsyncIterable
+from typing import Any
+
 from moxie.types import Send
+
 
 class Response:
     __slots__ = ("content", "status_code", "headers", "media_type")
@@ -12,8 +15,8 @@ class Response:
         self,
         content: Any = None,
         status_code: int = 200,
-        headers: Optional[Dict[str, str]] = None,
-        media_type: Optional[str] = None,
+        headers: dict[str, str] | None = None,
+        media_type: str | None = None,
     ) -> None:
         self.content = content
         self.status_code = status_code
@@ -72,8 +75,8 @@ class StreamingResponse(Response):
         self,
         content: AsyncIterable[Any],
         status_code: int = 200,
-        headers: Optional[Dict[str, str]] = None,
-        media_type: Optional[str] = None,
+        headers: dict[str, str] | None = None,
+        media_type: str | None = None,
     ) -> None:
         super().__init__(None, status_code, headers, media_type)
         self.streaming_content = content
@@ -109,7 +112,7 @@ class EventSourceResponse(StreamingResponse):
         self,
         content: AsyncIterable[Any],
         status_code: int = 200,
-        headers: Optional[Dict[str, str]] = None,
+        headers: dict[str, str] | None = None,
         ping_interval: int = 15,
     ) -> None:
         headers = headers or {}

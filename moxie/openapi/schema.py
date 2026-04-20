@@ -1,29 +1,23 @@
 import datetime
 import decimal
-import enum
 import inspect
 import uuid
 from typing import (
     Any,
-    Dict,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    Type,
     Union,
     get_args,
     get_origin,
 )
 
-from pydantic import BaseModel, TypeAdapter
+from pydantic import BaseModel
+
 
 class SchemaCollector:
     def __init__(self) -> None:
-        self.schemas: Dict[str, Dict[str, Any]] = {}
-        self.seen_types: Set[Type[Any]] = set()
+        self.schemas: dict[str, dict[str, Any]] = {}
+        self.seen_types: set[type[Any]] = set()
 
-    def add_model(self, model_class: Type[BaseModel]) -> str:
+    def add_model(self, model_class: type[BaseModel]) -> str:
         name = model_class.__name__
         if name not in self.schemas:
             # We use pydantic's built-in JSON schema generation
@@ -32,7 +26,7 @@ class SchemaCollector:
             # (Simplification: for now we just store the schema)
         return name
 
-def python_type_to_schema(tp: Any, collector: SchemaCollector) -> Dict[str, Any]:
+def python_type_to_schema(tp: Any, collector: SchemaCollector) -> dict[str, Any]:
     """Convert a Python type annotation to a JSON Schema dict."""
     
     # Handle None
@@ -68,11 +62,11 @@ def python_type_to_schema(tp: Any, collector: SchemaCollector) -> Dict[str, Any]
     origin = get_origin(tp)
     args = get_args(tp)
 
-    if origin is list or origin is List:
+    if origin is list or origin is list:
         items_schema = python_type_to_schema(args[0], collector) if args else {}
         return {"type": "array", "items": items_schema}
 
-    if origin is dict or origin is Dict:
+    if origin is dict or origin is dict:
         # We assume string keys for OpenAPI
         value_schema = python_type_to_schema(args[1], collector) if len(args) > 1 else {}
         return {"type": "object", "additionalProperties": value_schema}

@@ -1,18 +1,18 @@
-import asyncio
 import inspect
 import logging
-from typing import Any, Callable, List, Tuple
+from collections.abc import Callable
+from typing import Any
 
 logger = logging.getLogger("moxie.background")
 
 class BackgroundTasks:
     def __init__(self) -> None:
-        self.tasks: List[Tuple[Callable[..., Any], Tuple[Any, ...], dict[str, Any]]] = []
+        self.tasks: list[tuple[Callable[..., Any], tuple[Any, ...], dict[str, Any]]] = []
 
     def add(self, func: Callable[..., Any], *args: Any, **kwargs: Any) -> None:
         self.tasks.append((func, args, kwargs))
 
-    def add_concurrent(self, tasks: List[Tuple[Callable[..., Any], Tuple[Any, ...], dict[str, Any]]]) -> None:
+    def add_concurrent(self, tasks: list[tuple[Callable[..., Any], tuple[Any, ...], dict[str, Any]]]) -> None:
         # Placeholder for parallel execution if needed
         self.tasks.extend(tasks)
 

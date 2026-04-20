@@ -1,6 +1,7 @@
-import click
 import importlib
-from typing import Any
+
+import click
+
 
 @click.command()
 @click.argument("app_path")

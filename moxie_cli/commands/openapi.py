@@ -1,7 +1,9 @@
-import click
 import importlib
 import json
+
+import click
 import yaml
+
 
 @click.group()
 def openapi() -> None:

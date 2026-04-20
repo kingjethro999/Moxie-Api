@@ -1,6 +1,8 @@
-import click
 import subprocess
 import sys
+
+import click
+
 
 @click.command()
 @click.argument("app_path")

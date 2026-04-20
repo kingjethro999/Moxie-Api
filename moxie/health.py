@@ -1,7 +1,10 @@
-from typing import Any, Callable, List, Optional, Union
+from collections.abc import Callable
+from typing import Any
+
 from moxie.app import Moxie
 from moxie.plugins import BasePlugin
 from moxie.response import JSONResponse
+
 
 class HealthCheck:
     def __init__(self, name: str, check_func: Callable[[], Any]) -> None:
@@ -22,7 +25,7 @@ class HealthCheck:
 class HealthPlugin(BasePlugin):
     name = "health"
 
-    def __init__(self, checks: Optional[List[HealthCheck]] = None) -> None:
+    def __init__(self, checks: list[HealthCheck] | None = None) -> None:
         self.checks = checks or []
 
     async def on_startup(self, app: Moxie) -> None:

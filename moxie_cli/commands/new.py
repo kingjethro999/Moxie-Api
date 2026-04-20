@@ -1,6 +1,7 @@
-import os
-import click
 from pathlib import Path
+
+import click
+
 
 @click.command()
 @click.argument("name")

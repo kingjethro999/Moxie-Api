@@ -1,13 +1,15 @@
 import re
-from typing import Any, Dict, List, Optional, Tuple, Type
+from typing import Any
+
 from moxie.routing.converters import CONVERTERS, Converter
+
 
 class RouteMatcher:
     def __init__(self, path_pattern: str) -> None:
         self.path_pattern = path_pattern
         self.regex, self.converters = self._compile(path_pattern)
 
-    def _compile(self, pattern: str) -> Tuple[re.Pattern[str], Dict[str, Converter]]:
+    def _compile(self, pattern: str) -> tuple[re.Pattern[str], dict[str, Converter]]:
         # Convert {name:type} or {name} to regex groups
         # Example: /user/{id:int} -> /user/(?P<id>[0-9]+)
         
@@ -37,7 +39,7 @@ class RouteMatcher:
         regex += "$"
         return re.compile(regex), converters
 
-    def match(self, path: str) -> Optional[Dict[str, Any]]:
+    def match(self, path: str) -> dict[str, Any] | None:
         match = self.regex.match(path)
         if not match:
             return None
@@ -50,18 +52,18 @@ class RouteMatcher:
 
 class TrieNode:
     def __init__(self) -> None:
-        self.children: Dict[str, TrieNode] = {}
+        self.children: dict[str, TrieNode] = {}
         self.is_param: bool = False
-        self.param_name: Optional[str] = None
-        self.param_converter: Optional[Converter] = None
-        self.routes: Dict[str, Any] = {} # method -> handler
+        self.param_name: str | None = None
+        self.param_converter: Converter | None = None
+        self.routes: dict[str, Any] = {} # method -> handler
 
 class RouterMatcher:
     """Trie-based router for fast path resolution."""
     def __init__(self) -> None:
         self.root = TrieNode()
 
-    def add_route(self, path: str, methods: List[str], handler: Any) -> None:
+    def add_route(self, path: str, methods: list[str], handler: Any) -> None:
         # Simple implementation using regex matcher for now as per CLAUDE.md requirements
         # but structured for easy expansion.
         pass
@@ -71,12 +73,12 @@ class RouterMatcher:
 
 class CompiledRouter:
     def __init__(self) -> None:
-        self.routes: List[Tuple[RouteMatcher, Any]] = []
+        self.routes: list[tuple[RouteMatcher, Any]] = []
 
     def add_route(self, route: Any) -> None:
         self.routes.append((RouteMatcher(route.path), route))
 
-    def resolve(self, path: str, method: str) -> Optional[Tuple[Any, Dict[str, Any]]]:
+    def resolve(self, path: str, method: str) -> tuple[Any, dict[str, Any]] | None:
         method = method.upper()
         for matcher, route in self.routes:
             if method in route.methods or "ANY" in route.methods:

@@ -1,15 +1,16 @@
 import inspect
 import re
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+from typing import Any, Union
 
-from moxie.router import Route
 from moxie.openapi.schema import SchemaCollector, python_type_to_schema
+from moxie.router import Route
+
 
 class OperationExtractor:
     def __init__(self, collector: SchemaCollector) -> None:
         self.collector = collector
 
-    def extract(self, route: Route) -> Dict[str, Any]:
+    def extract(self, route: Route) -> dict[str, Any]:
         handler = route.handler
         sig = inspect.signature(handler)
         docstring = inspect.getdoc(handler) or ""
@@ -29,8 +30,8 @@ class OperationExtractor:
         
         for name, param in sig.parameters.items():
             # Skip special types
-            from moxie.request import Request
             from moxie.background import BackgroundTasks
+            from moxie.request import Request
             # Simplified check for special types
             if name in ["request", "ws", "tasks"] or param.annotation in [Request, BackgroundTasks]:
                 continue
@@ -109,7 +110,7 @@ class OperationExtractor:
 
         return operation
 
-    def _parse_google_docstring(self, docstring: str) -> Tuple[str, str, Dict[str, str], str, Dict[int, str]]:
+    def _parse_google_docstring(self, docstring: str) -> tuple[str, str, dict[str, str], str, dict[int, str]]:
         """Parses a Google-style docstring."""
         if not docstring:
             return "", "", {}, "", {}
@@ -145,9 +146,10 @@ class OperationExtractor:
         return summary, description, params, returns, raises
 
     def _is_body_type(self, tp: Any) -> bool:
-        from pydantic import BaseModel
         # Also check for Optional[BaseModel] or Union[BaseModel, None]
-        from typing import get_origin, get_args
+        from typing import get_args, get_origin
+
+        from pydantic import BaseModel
         origin = get_origin(tp)
         if origin is Union:
             args = get_args(tp)

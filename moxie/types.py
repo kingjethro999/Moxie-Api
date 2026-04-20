@@ -1,4 +1,5 @@
-from typing import Any, Awaitable, Callable, Dict, MutableMapping, Protocol, TypeAlias, Union
+from collections.abc import Awaitable, Callable, MutableMapping
+from typing import Any, Protocol, TypeAlias
 
 Scope: TypeAlias = MutableMapping[str, Any]
 Message: TypeAlias = MutableMapping[str, Any]

@@ -1,17 +1,18 @@
 import inspect
 import logging
-from typing import Any, Callable, Dict, List, Optional, Type, Union, Tuple
+from collections.abc import Callable
+from typing import Any
 
-from moxie.types import Scope, Receive, Send
-from moxie.request import Request, WebSocket
-from moxie.response import Response, JSONResponse, PlainTextResponse, HTMLResponse
-from moxie.router import Router, Route, WebSocketRoute
-from moxie.exceptions import HTTPException
-from moxie.di.container import DependencyContainer, DependencyResolver
 from moxie.background import BackgroundTasks
-from moxie.plugins import Plugin
+from moxie.di.container import DependencyContainer, DependencyResolver
+from moxie.exceptions import HTTPException
 from moxie.openapi.builder import OpenAPIBuilder
-from moxie.openapi.ui import get_swagger_ui_html, get_redoc_html
+from moxie.openapi.ui import get_redoc_html, get_swagger_ui_html
+from moxie.plugins import Plugin
+from moxie.request import Request, WebSocket
+from moxie.response import HTMLResponse, JSONResponse, PlainTextResponse, Response
+from moxie.router import Router
+from moxie.types import Receive, Scope, Send
 
 logger = logging.getLogger("moxie")
 
@@ -20,12 +21,12 @@ class Moxie:
         self,
         title: str = "Moxie API",
         version: str = "2.0.0",
-        description: Optional[str] = None,
+        description: str | None = None,
         openapi: bool = True,
-        docs_url: Optional[str] = "/docs",
-        redoc_url: Optional[str] = "/redoc",
-        openapi_url: Optional[str] = "/openapi.json",
-        swagger_ui_parameters: Optional[Dict[str, Any]] = None,
+        docs_url: str | None = "/docs",
+        redoc_url: str | None = "/redoc",
+        openapi_url: str | None = "/openapi.json",
+        swagger_ui_parameters: dict[str, Any] | None = None,
     ) -> None:
         self.title = title
         self.version = version
@@ -33,13 +34,13 @@ class Moxie:
         self.router = Router()
         self.di_container = DependencyContainer()
         self.di_resolver = DependencyResolver(self.di_container)
-        self.plugins: Dict[str, Plugin] = {}
-        self.middleware_defs: List[Tuple[Type[Any], Dict[str, Any]]] = []
-        self.asgi_app: Optional[Callable[[Scope, Receive, Send], Any]] = None
+        self.plugins: dict[str, Plugin] = {}
+        self.middleware_defs: list[tuple[type[Any], dict[str, Any]]] = []
+        self.asgi_app: Callable[[Scope, Receive, Send], Any] | None = None
         
-        self._on_startup: List[Callable[..., Any]] = []
-        self._on_shutdown: List[Callable[..., Any]] = []
-        self.state: Dict[str, Any] = {}
+        self._on_startup: list[Callable[..., Any]] = []
+        self._on_shutdown: list[Callable[..., Any]] = []
+        self.state: dict[str, Any] = {}
         
         self.openapi_url = openapi_url
         self.docs_url = docs_url
@@ -53,7 +54,7 @@ class Moxie:
     def _setup_openapi_routes(self) -> None:
         if self.openapi_url:
             @self.get(self.openapi_url, include_in_schema=False)
-            async def openapi() -> Dict[str, Any]:
+            async def openapi() -> dict[str, Any]:
                 return self.openapi_builder.spec
         
         if self.docs_url and self.openapi_url:
@@ -77,7 +78,7 @@ class Moxie:
                     )
                 )
 
-    def add_middleware(self, middleware_class: Type[Any], **kwargs: Any) -> None:
+    def add_middleware(self, middleware_class: type[Any], **kwargs: Any) -> None:
         self.middleware_defs.insert(0, (middleware_class, kwargs))
         self.asgi_app = None
 
@@ -211,9 +212,9 @@ class Moxie:
             if exc.headers:
                 response.headers.update(exc.headers)
             await response(send)
-        except Exception as exc:
+        except Exception:
             logger.exception("Internal Server Error")
-            response = PlainTextResponse(f"Internal Server Error", status_code=500)
+            response = PlainTextResponse("Internal Server Error", status_code=500)
             await response(send)
 
     async def handle_websocket(self, scope: Scope, receive: Receive, send: Send) -> None:
@@ -241,7 +242,7 @@ class Moxie:
             else:
                 route.handler(**kwargs)
 
-        except Exception as exc:
+        except Exception:
             logger.exception("WebSocket Error")
             await ws.close(code=1011)
 
@@ -253,5 +254,5 @@ class Moxie:
         self._on_shutdown.append(handler)
         return handler
 
-    def openapi(self) -> Dict[str, Any]:
+    def openapi(self) -> dict[str, Any]:
         return self.openapi_builder.spec

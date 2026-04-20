@@ -1,10 +1,10 @@
-from typing import Any, Dict, Optional
+from moxie.exceptions import HTTPException
 from moxie.guards.base import BaseGuard
 from moxie.request import Request
-from moxie.exceptions import HTTPException
+
 
 class BearerTokenGuard(BaseGuard):
-    def __init__(self, scheme_name: str = "BearerAuth", description: Optional[str] = None) -> None:
+    def __init__(self, scheme_name: str = "BearerAuth", description: str | None = None) -> None:
         self.scheme_name = scheme_name
         self.openapi_security_scheme = {
             "type": "http",

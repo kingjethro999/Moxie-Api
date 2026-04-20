@@ -1,17 +1,17 @@
 from moxie.app import Moxie
-from moxie.router import Router, Route, WebSocketRoute
+from moxie.background import BackgroundTasks
+from moxie.di.depends import Depends
+from moxie.exceptions import HTTPException, MoxieError
 from moxie.request import Request, WebSocket
 from moxie.response import (
-    Response,
-    JSONResponse,
-    HTMLResponse,
-    PlainTextResponse,
-    StreamingResponse,
     EventSourceResponse,
+    HTMLResponse,
+    JSONResponse,
+    PlainTextResponse,
+    Response,
+    StreamingResponse,
 )
-from moxie.exceptions import HTTPException, MoxieError
-from moxie.di.depends import Depends
-from moxie.background import BackgroundTasks
+from moxie.router import Route, Router, WebSocketRoute
 
 __all__ = [
     "Moxie",

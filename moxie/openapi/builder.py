@@ -1,8 +1,8 @@
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
+from moxie.openapi.extractor import OperationExtractor
 from moxie.openapi.models import OPENAPI_VERSION
 from moxie.openapi.schema import SchemaCollector
-from moxie.openapi.extractor import OperationExtractor
 
 if TYPE_CHECKING:
     from moxie.app import Moxie
@@ -10,14 +10,14 @@ if TYPE_CHECKING:
 class OpenAPIBuilder:
     def __init__(self, app: "Moxie") -> None:
         self.app = app
-        self._spec: Optional[Dict[str, Any]] = None
+        self._spec: dict[str, Any] | None = None
 
-    def build(self) -> Dict[str, Any]:
+    def build(self) -> dict[str, Any]:
         """Build and return the full OpenAPI 3.1 document as a dict."""
         collector = SchemaCollector()
         extractor = OperationExtractor(collector)
         
-        paths: Dict[str, Dict[str, Any]] = {}
+        paths: dict[str, dict[str, Any]] = {}
         tags_seen = set()
         security_schemes = {}
 
@@ -70,7 +70,7 @@ class OpenAPIBuilder:
         self._spec = None
 
     @property
-    def spec(self) -> Dict[str, Any]:
+    def spec(self) -> dict[str, Any]:
         """Cached spec. Calls build() on first access."""
         if self._spec is None:
             self.build()

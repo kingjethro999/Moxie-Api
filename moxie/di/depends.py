@@ -1,4 +1,6 @@
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
+
 
 class Dependency:
     def __init__(self, dependency: Callable[..., Any], use_cache: bool = True) -> None:
