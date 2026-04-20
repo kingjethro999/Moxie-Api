@@ -46,10 +46,29 @@ class Route:
         self.include_in_schema = include_in_schema
         self.responses = responses or {}
 
+class WebSocketRoute(Route):
+    def __init__(
+        self,
+        path: str,
+        handler: Callable[..., Any],
+        name: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+        guards: Optional[List[Guard]] = None,
+    ) -> None:
+        super().__init__(
+            path, 
+            handler, 
+            methods=["WS"], 
+            name=name, 
+            tags=tags, 
+            guards=guards,
+            include_in_schema=True
+        )
+
 class Router:
     def __init__(self, prefix: str = "", guards: Optional[List[Guard]] = None) -> None:
         self.prefix = prefix
-        self.routes: List[Route] = []
+        self.routes: List[Union[Route, WebSocketRoute]] = []
         self.guards = guards or []
         self._compiled_router: Optional[CompiledRouter] = None
 
@@ -76,7 +95,26 @@ class Router:
             **openapi_kwargs
         )
         self.routes.append(route)
-        self._compiled_router = None # Invalidate cache
+        self._compiled_router = None
+
+    def add_ws_route(
+        self,
+        path: str,
+        handler: Callable[..., Any],
+        name: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+        guards: Optional[List[Guard]] = None,
+    ) -> None:
+        full_path = self.prefix + path
+        all_guards = self.guards + (guards or [])
+        self.routes.append(WebSocketRoute(full_path, handler, name, tags, all_guards))
+        self._compiled_router = None
+
+    def ws(self, path: str, **kwargs: Any) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        def decorator(handler: Callable[..., Any]) -> Callable[..., Any]:
+            self.add_ws_route(path, handler, **kwargs)
+            return handler
+        return decorator
 
     def get(self, path: str, **kwargs: Any) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         return self._add_method_route(path, ["GET"], **kwargs)
@@ -103,11 +141,6 @@ class Router:
 
     def mount(self, router: "Router") -> None:
         for route in router.routes:
-            # We don't re-use add_route here to avoid re-prefixing or doubling guards if not needed,
-            # but actually we SHOULD re-prefix if mounting a router on another.
-            # The Route objects already have full_path from their original router.
-            # If we mount a router with prefix /api on an app, 
-            # and the router has a route /users, the route.path is already /api/users.
             self.routes.append(route)
             self._compiled_router = None
 

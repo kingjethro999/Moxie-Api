@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 from moxie.openapi.models import OPENAPI_VERSION
 from moxie.openapi.schema import SchemaCollector
@@ -75,5 +75,3 @@ class OpenAPIBuilder:
         if self._spec is None:
             self.build()
         return self._spec
-
-from typing import Optional

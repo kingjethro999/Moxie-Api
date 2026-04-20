@@ -1,6 +1,6 @@
 from moxie.app import Moxie
-from moxie.router import Router, Route
-from moxie.request import Request
+from moxie.router import Router, Route, WebSocketRoute
+from moxie.request import Request, WebSocket
 from moxie.response import (
     Response,
     JSONResponse,
@@ -10,12 +10,16 @@ from moxie.response import (
     EventSourceResponse,
 )
 from moxie.exceptions import HTTPException, MoxieError
+from moxie.di.depends import Depends
+from moxie.background import BackgroundTasks
 
 __all__ = [
     "Moxie",
     "Router",
     "Route",
+    "WebSocketRoute",
     "Request",
+    "WebSocket",
     "Response",
     "JSONResponse",
     "HTMLResponse",
@@ -24,4 +28,6 @@ __all__ = [
     "EventSourceResponse",
     "HTTPException",
     "MoxieError",
+    "Depends",
+    "BackgroundTasks",
 ]

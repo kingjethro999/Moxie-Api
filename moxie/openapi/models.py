@@ -33,7 +33,3 @@ class OpenAPI(BaseModel):
     components: Dict[str, Any] = Field(default_factory=dict)
     tags: List[Tag] = Field(default_factory=list)
     externalDocs: Optional[ExternalDocs] = None
-
-# We use Any for nested structures to avoid overly complex pydantic models 
-# for the spec itself, as it's generated once.
-from typing import Any

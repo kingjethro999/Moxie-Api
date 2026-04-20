@@ -1,11 +1,22 @@
 from moxie import Moxie, JSONResponse, HTTPException
+from moxie.middleware import RequestIDMiddleware, StructuredLoggingMiddleware
+from moxie.health import HealthPlugin, HealthCheck
 from pydantic import BaseModel
 
 app = Moxie(
     title="Moxie Demo API",
-    description="A demonstration of Moxie's **Auto OpenAPI** and **Guards** features.",
+    description="A demonstration of Moxie's **Auto OpenAPI**, **Middleware**, and **Health Checks**.",
     version="1.0.0"
 )
+
+# Add Middleware
+app.add_middleware(RequestIDMiddleware)
+app.add_middleware(StructuredLoggingMiddleware)
+
+# Add Health Checks
+app.install(HealthPlugin(checks=[
+    HealthCheck("database", lambda: True), # Fake check
+]))
 
 class Item(BaseModel):
     name: str
@@ -41,11 +52,11 @@ async def read_item(item_id: int, q: str = None) -> dict:
 async def create_item(item: Item) -> Item:
     """
     Create an item with the provided data.
-    
-    Returns the created item.
     """
     return item
 
 if __name__ == "__main__":
     import uvicorn
+    import logging
+    logging.basicConfig(level=logging.INFO)
     uvicorn.run(app, host="0.0.0.0", port=8000)
