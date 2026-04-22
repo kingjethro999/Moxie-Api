@@ -120,3 +120,76 @@ class EventSourceResponse(StreamingResponse):
         headers.setdefault("Connection", "keep-alive")
         super().__init__(content, status_code, headers, self.media_type)
         self.ping_interval = ping_interval
+
+
+class FileResponse(Response):
+    __slots__ = ("path", "stat_result")
+
+    def __init__(
+        self,
+        path: str,
+        status_code: int = 200,
+        headers: dict[str, str] | None = None,
+        media_type: str | None = None,
+        filename: str | None = None,
+    ) -> None:
+        import mimetypes
+        import os
+
+        self.path = path
+        self.status_code = status_code
+        self.headers = headers or {}
+        
+        if not os.path.exists(path):
+            raise RuntimeError(f"File at {path} does not exist")
+        
+        self.stat_result = os.stat(path)
+        
+        if media_type is None:
+            media_type, _ = mimetypes.guess_type(path)
+            media_type = media_type or "application/octet-stream"
+            
+        self.media_type = media_type
+        self.headers.setdefault("content-type", self.media_type)
+        self.headers.setdefault("content-length", str(self.stat_result.st_size))
+        last_mod = self._format_date(self.stat_result.st_mtime)
+        self.headers.setdefault("last-modified", last_mod)
+        
+        if filename:
+            self.headers.setdefault(
+                "content-disposition", f'attachment; filename="{filename}"'
+            )
+        
+        super().__init__(None, status_code, self.headers, media_type)
+
+    async def __call__(self, send: Send) -> None:
+        await send({
+            "type": "http.response.start",
+            "status": self.status_code,
+            "headers": [
+                [k.lower().encode("latin-1"), v.encode("latin-1")]
+                for k, v in self.headers.items()
+            ],
+        })
+        
+        import anyio
+        async with await anyio.open_file(self.path, mode="rb") as f:
+            while True:
+                chunk = await f.read(64 * 1024)
+                if not chunk:
+                    break
+                await send({
+                    "type": "http.response.body",
+                    "body": chunk,
+                    "more_body": True,
+                })
+        
+        await send({
+            "type": "http.response.body",
+            "body": b"",
+            "more_body": False,
+        })
+
+    def _format_date(self, timestamp: float) -> str:
+        import time
+        return time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime(timestamp))

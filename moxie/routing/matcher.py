@@ -79,7 +79,7 @@ class RouterMatcher:
                 else:
                     name, type_name = inner, "str"
 
-                # We use ":" as a key for param nodes to distinguish from static segments
+                # We use ":" as a key for param nodes to differ from static segments
                 if ":" not in node.children:
                     param_node = TrieNode()
                     param_node.is_param = True
@@ -104,7 +104,14 @@ class RouterMatcher:
         params = {}
         node = self.root
 
-        for part in parts:
+        for _, part in enumerate(parts):
+            # Check if current node is an ASGI mount
+            # We check "ANY" or any method because ASGI apps usually handle all methods
+            # but we need to see if the route object is an ASGIRoute.
+            for route in node.routes.values():
+                if getattr(route, "is_asgi", False):
+                    return route, params
+
             if part in node.children:
                 node = node.children[part]
             elif ":" in node.children:

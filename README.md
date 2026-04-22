@@ -1,54 +1,41 @@
-<p align="center">
-  <img src="./moxie.png" alt="Moxie Banner" width="800">
-</p>
+# 🚀 Moxie API
 
-<h1 align="center">Moxie API</h1>
+A lightweight, high-performance, and "battery-included" ASGI web framework for Python. Built for modern development with a focus on speed, developer experience, and seamless integrations.
 
-<p align="center">
-  <strong>The blazing-fast, modern Python framework designed for speed, efficiency, and developer productivity.</strong>
-</p>
+## ✨ Features
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Python-3.10+-blue.svg" alt="Python Version">
-  <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License">
-  <img src="https://img.shields.io/badge/Performance-Blazing%20Fast-orange.svg" alt="Performance">
-</p>
+- **⚡ High Performance**: Built on top of `anyio`, `httptools`, and `h11` for maximum throughput.
+- **🛡️ Type-Safe**: Native support for Pydantic models with automatic request validation.
+- **🔌 Plugin System**: Easily integrate with services like **Supabase**, **Firebase**, and **SQLAlchemy**.
+- **🛠️ Dependency Injection**: Powerful and intuitive DI system with automatic parameter inference.
+- **🔒 Security First**: Built-in support for JWT and API Key authentication.
+- **📦 Middleware**: Robust middleware stack including CORS, GZip, TrustedHost, and more.
+- **📄 Auto OpenAPI**: Automatic documentation generation (Swagger UI).
+- **🧪 Testing Suite**: Built-in `TestClient` for effortless API testing.
 
 ---
 
-Moxie is an ASGI-native web framework built on top of high-performance components. It combines the ease of use of FastAPI with a modular architecture that gives you full control over your API's lifecycle.
-
-## ✨ Key Features
-
-- 🚀 **Blazing Fast**: Built on `uvicorn` and optimized `asyncio` for maximum throughput.
-- 🛠️ **Dependency Injection**: A robust, built-in DI system that makes testing and modularity a breeze.
-- 📜 **Auto OpenAPI**: Stunning, interactive documentation with Swagger UI and ReDoc, generated automatically from your code.
-- 🔌 **Plugin System**: Easily extend the framework with custom plugins for health checks, logging, and more.
-- 🛡️ **Type Safety**: Full Pydantic integration for request validation and response serialization.
-- 🌐 **WebSockets**: Native, easy-to-use WebSocket support with JSON serialization.
-
 ## 🚀 Quickstart
-
-Install Moxie using pip:
-
-```bash
-pip install moxie-api
-```
 
 Create a file named `app.py`:
 
 ```python
-from moxie import Moxie
+from moxie import Moxie, Body
+from pydantic import BaseModel
 
-app = Moxie(title="My Awesome API")
+class Item(BaseModel):
+    name: str
+    price: float
+
+app = Moxie(title="Moxie Demo")
 
 @app.get("/")
-async def root():
-    return {"message": "Welcome to Moxie!"}
+async def root(name: str = "World"):
+    return {"message": f"Welcome to Moxie, {name}!"}
 
-@app.get("/items/{item_id}")
-async def read_item(item_id: int, q: str = None):
-    return {"item_id": item_id, "q": q}
+@app.post("/items")
+async def create_item(item: Item):
+    return {"item": item, "status": "created"}
 ```
 
 Run your API:
@@ -59,10 +46,92 @@ moxie dev app:app
 
 Now visit `http://127.0.0.1:8000/docs` to see your interactive documentation!
 
-## 🤝 Contributing
+---
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for more details.
+## 🔌 Plugins See [PLUGINS.MD](./PLUGINS.MD) for full details
 
-## 📄 License
+Moxie makes it easy to integrate with your favorite services.
+
+### SQLAlchemy (Async)
+```python
+from moxie.plugins.sqlalchemy import SQLAlchemyPlugin
+
+db_plugin = SQLAlchemyPlugin(database_url="sqlite+aiosqlite:///./test.db")
+app.install(db_plugin)
+
+@app.get("/users")
+async def get_users(db = Depends(db_plugin.get_db)):
+    # db is an AsyncSession
+    ...
+```
+
+### Supabase
+```python
+from moxie.plugins.supabase import SupabasePlugin
+
+sb = SupabasePlugin(url="URL", key="KEY")
+app.install(sb)
+
+@app.get("/data")
+async def data(client = Depends(sb.get_client)):
+    ...
+```
+
+---
+
+## 🧪 Testing
+
+Testing is a first-class citizen in Moxie. Use the `TestClient` to test your endpoints without running a server:
+
+```python
+from moxie.testing import TestClient
+from app import app
+
+client = TestClient(app)
+
+def test_root():
+    response = client.get("/?name=Developer")
+    assert response.status_code == 200
+    assert response.json()["message"] == "Welcome to Moxie, Developer!"
+```
+
+---
+
+## 🧩 Middleware
+
+Moxie includes several built-in middlewares:
+
+```python
+from moxie.middleware import CORSMiddleware, GZipMiddleware
+
+# Cross-Origin Resource Sharing
+app.add_middleware(CORSMiddleware, allow_origins=["*"])
+
+# Response Compression
+app.add_middleware(GZipMiddleware, minimum_size=500)
+```
+
+---
+
+## 🛠️ CLI Tools
+
+Bootstrapping a new project is easy:
+
+```bash
+# Create a base project
+moxie new my_project
+
+# Create a project with a specific integration
+moxie new my_db_project --template sqlalchemy
+```
+
+Other CLI commands:
+- `moxie dev`: Start the development server with auto-reload.
+- `moxie routes`: List all registered routes.
+- `moxie openapi`: Generate and export OpenAPI schema.
+
+---
+
+## 📜 License
 
 Moxie is licensed under the MIT License. See the [LICENSE](LICENSE) file for more information.

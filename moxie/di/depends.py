@@ -9,3 +9,24 @@ class Dependency:
 
 def Depends(dependency: Callable[..., Any], *, use_cache: bool = True) -> Any:
     return Dependency(dependency, use_cache=use_cache)
+
+
+class ParamMarker:
+    def __init__(self, default: Any = None, alias: str | None = None) -> None:
+        self.default = default
+        self.alias = alias
+
+class Query(ParamMarker):
+    pass
+
+class Header(ParamMarker):
+    pass
+
+class Cookie(ParamMarker):
+    pass
+
+class Body(ParamMarker):
+    pass
+
+class Path(ParamMarker):
+    pass

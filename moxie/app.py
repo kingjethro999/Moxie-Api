@@ -4,8 +4,8 @@ from collections.abc import Callable
 from typing import Any
 
 from moxie.background import BackgroundTasks
+from moxie.config import load_env
 from moxie.di.container import DependencyContainer, DependencyResolver
-from moxie.exceptions import HTTPException
 from moxie.openapi.builder import OpenAPIBuilder
 from moxie.openapi.ui import get_redoc_html, get_swagger_ui_html
 from moxie.plugins import Plugin
@@ -27,7 +27,11 @@ class Moxie:
         redoc_url: str | None = "/redoc",
         openapi_url: str | None = "/openapi.json",
         swagger_ui_parameters: dict[str, Any] | None = None,
+        load_dotenv: bool = True,
     ) -> None:
+        if load_dotenv:
+            load_env()
+            
         self.title = title
         self.version = version
         self.description = description
@@ -128,11 +132,8 @@ class Moxie:
             prefix_router.mount(app.router)
             self.router.mount(prefix_router)
         else:
-            # Fallback for raw ASGI apps or other mountable objects
-            # For now, we don't have a generic ASGI mount, but we should at least log it
-            logger.warning(
-                f"Mounting non-Moxie app at {path} is not fully supported yet."
-            )
+            # Support raw ASGI apps (like StaticFiles)
+            self.router.mount_asgi(path, app)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if self.asgi_app is None:
@@ -204,39 +205,42 @@ class Moxie:
             return
 
         route, path_params = resolved
-        try:
-            for guard in route.guards:
-                await guard.check(request)
+        if route.is_asgi:
+            # Adjust scope for mounted ASGI apps
+            # root_path should include the prefix matched by the mount
+            # path should be the remaining part
+            mount_path = route.path
+            if mount_path.endswith("/"):
+                mount_path = mount_path[:-1]
+            
+            scope["root_path"] = scope.get("root_path", "") + mount_path
+            scope["path"] = path[len(mount_path):]
+            
+            await route.handler(scope, receive, send)
+            return
 
-            background_tasks = BackgroundTasks()
-            kwargs = await self.di_resolver.resolve_handler_deps(
-                route.handler, request, path_params, background_tasks=background_tasks
-            )
+        for guard in route.guards:
+            await guard.check(request)
 
-            if inspect.iscoroutinefunction(route.handler):
-                response_data = await route.handler(**kwargs)
-            else:
-                response_data = route.handler(**kwargs)
+        background_tasks = BackgroundTasks()
+        kwargs = await self.di_resolver.resolve_handler_deps(
+            route.handler, request, path_params, background_tasks=background_tasks
+        )
 
-            if isinstance(response_data, Response):
-                response = response_data
-            elif isinstance(response_data, (dict, list)):
-                response = JSONResponse(response_data)
-            else:
-                response = Response(response_data)
+        if inspect.iscoroutinefunction(route.handler):
+            response_data = await route.handler(**kwargs)
+        else:
+            response_data = route.handler(**kwargs)
 
-            await response(send)
-            await background_tasks.run()
+        if isinstance(response_data, Response):
+            response = response_data
+        elif isinstance(response_data, (dict, list)):
+            response = JSONResponse(response_data)
+        else:
+            response = Response(response_data)
 
-        except HTTPException as exc:
-            response = JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
-            if exc.headers:
-                response.headers.update(exc.headers)
-            await response(send)
-        except Exception:
-            logger.exception("Internal Server Error")
-            response = PlainTextResponse("Internal Server Error", status_code=500)
-            await response(send)
+        await response(send)
+        await background_tasks.run()
 
     async def handle_websocket(
         self, scope: Scope, receive: Receive, send: Send
@@ -250,22 +254,17 @@ class Moxie:
             return
 
         route, path_params = resolved
-        try:
-            for guard in route.guards:
-                await guard.check(ws) # type: ignore (Guards handle Request or WebSocket)
+        for guard in route.guards:
+            await guard.check(ws) # type: ignore (Guards handle Request or WebSocket)
 
-            kwargs = await self.di_resolver.resolve_handler_deps(
-                route.handler, ws, path_params
-            )
+        kwargs = await self.di_resolver.resolve_handler_deps(
+            route.handler, ws, path_params
+        )
 
-            if inspect.iscoroutinefunction(route.handler):
-                await route.handler(**kwargs)
-            else:
-                route.handler(**kwargs)
-
-        except Exception:
-            logger.exception("WebSocket Error")
-            await ws.close(code=1011)
+        if inspect.iscoroutinefunction(route.handler):
+            await route.handler(**kwargs)
+        else:
+            route.handler(**kwargs)
 
     def on_startup(self, handler: Callable[..., Any]) -> Callable[..., Any]:
         self._on_startup.append(handler)

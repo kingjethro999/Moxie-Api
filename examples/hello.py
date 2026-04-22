@@ -1,11 +1,15 @@
-from moxie import Moxie, JSONResponse, HTTPException
-from moxie.middleware import RequestIDMiddleware, StructuredLoggingMiddleware
-from moxie.health import HealthPlugin, HealthCheck
 from pydantic import BaseModel
+
+from moxie import HTTPException, Moxie
+from moxie.health import HealthCheck, HealthPlugin
+from moxie.middleware import RequestIDMiddleware, StructuredLoggingMiddleware
 
 app = Moxie(
     title="Moxie Demo API",
-    description="A demonstration of Moxie's **Auto OpenAPI**, **Middleware**, and **Health Checks**.",
+    description=(
+        "A demonstration of Moxie's **Auto OpenAPI**, "
+        "**Middleware**, and **Health Checks**."
+    ),
     version="1.0.0"
 )
 
@@ -56,7 +60,8 @@ async def create_item(item: Item) -> Item:
     return item
 
 if __name__ == "__main__":
-    import uvicorn
     import logging
+
+    import uvicorn
     logging.basicConfig(level=logging.INFO)
     uvicorn.run(app, host="0.0.0.0", port=8000)
