@@ -63,6 +63,30 @@ class Request:
             self._json = json.loads(body)
         return self._json
 
+    async def form(self) -> dict[str, Any]:
+        if self._form is None:
+            content_type = self.headers.get("content-type", "")
+            if "application/x-www-form-urlencoded" in content_type:
+                from urllib.parse import parse_qs
+                body = await self.body()
+                self._form = {
+                    k: v[0] if len(v) == 1 else v
+                    for k, v in parse_qs(body.decode("utf-8")).items()
+                }
+            elif "multipart/form-data" in content_type:
+                try:
+                    import multipart  # noqa: F401
+                except ImportError:
+                    raise RuntimeError(
+                        "python-multipart is required for multipart/form-data support"
+                    ) from None
+                
+                # Simplified implementation for now
+                self._form = {} # In a real implementation, we'd parse the stream
+            else:
+                self._form = {}
+        return self._form
+
 class WebSocket:
     __slots__ = ("scope", "_receive", "_send", "state")
 

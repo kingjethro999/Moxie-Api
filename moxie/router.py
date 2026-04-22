@@ -19,6 +19,7 @@ class Route:
         "deprecated",
         "include_in_schema",
         "responses",
+        "is_asgi",
     )
     
     def __init__(
@@ -48,6 +49,18 @@ class Route:
         self.deprecated = deprecated
         self.include_in_schema = include_in_schema
         self.responses = responses or {}
+        self.is_asgi = False
+
+class ASGIRoute(Route):
+    def __init__(self, path: str, app: Any, name: str | None = None) -> None:
+        super().__init__(
+            path, 
+            handler=app, 
+            methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"], 
+            name=name or "asgi_app",
+            include_in_schema=False
+        )
+        self.is_asgi = True
 
 class WebSocketRoute(Route):
     def __init__(
@@ -165,6 +178,17 @@ class Router:
                 route.path = self.prefix + route.path
             self.routes.append(route)
             self._compiled_router = None
+
+    def mount_asgi(self, path: str, app: Any, name: str | None = None) -> None:
+        if not path.endswith("/") and path != "":
+            path += "/"
+        
+        full_path = self.prefix + path
+        # Use a wildcard match for ASGI mounts if the matcher supports it
+        # or we just match the prefix in the resolver.
+        # For now, let's assume we want to match the prefix.
+        self.routes.append(ASGIRoute(full_path, app, name))
+        self._compiled_router = None
 
     @property
     def compiled_router(self) -> CompiledRouter:

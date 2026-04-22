@@ -5,14 +5,19 @@ import click
 
 @click.command()
 @click.argument("name")
-def new(name: str) -> None:
+@click.option(
+    "--template", "-t", 
+    type=click.Choice(["base", "supabase", "firebase", "sqlalchemy"]), 
+    default="base"
+)
+def new(name: str, template: str) -> None:
     """Create a new Moxie project scaffold."""
     project_dir = Path(name)
     if project_dir.exists():
         click.echo(f"Error: Directory '{name}' already exists.")
         return
 
-    click.echo(f"🚀 Creating new Moxie project: {name}")
+    click.echo(f"🚀 Creating new Moxie project: {name} (Template: {template})")
     
     # Create directory structure
     dirs = [
@@ -26,9 +31,9 @@ def new(name: str) -> None:
         d.mkdir(parents=True, exist_ok=True)
         (d / "__init__.py").touch()
 
-    # Create main.py
-    main_py = project_dir / "app/main.py"
-    main_py.write_text("""from moxie import Moxie
+    # Define template-specific content
+    deps = ["moxie-api"]
+    main_py_content = """from moxie import Moxie
 
 app = Moxie(
     title="New Moxie Project",
@@ -39,15 +44,68 @@ app = Moxie(
 @app.get("/")
 async def root():
     return {"message": "Hello from Moxie!"}
-""")
+"""
+
+    if template == "supabase":
+        deps.append("supabase")
+        main_py_content = """from moxie import Moxie
+from moxie.plugins.supabase import SupabasePlugin
+
+app = Moxie(title="Supabase Moxie App")
+
+# Configure Supabase
+supabase = SupabasePlugin(
+    url="YOUR_SUPABASE_URL",
+    key="YOUR_SUPABASE_KEY"
+)
+app.install(supabase)
+
+@app.get("/")
+async def root():
+    return {"message": "Supabase Plugin installed!"}
+"""
+    elif template == "firebase":
+        deps.append("firebase-admin")
+        main_py_content = """from moxie import Moxie
+from moxie.plugins.firebase import FirebasePlugin
+
+app = Moxie(title="Firebase Moxie App")
+
+# Configure Firebase
+firebase = FirebasePlugin(credential_path="path/to/serviceAccountKey.json")
+app.install(firebase)
+
+@app.get("/")
+async def root():
+    return {"message": "Firebase Plugin installed!"}
+"""
+    elif template == "sqlalchemy":
+        deps.extend(["sqlalchemy", "aiosqlite"])
+        main_py_content = """from moxie import Moxie
+from moxie.plugins.sqlalchemy import SQLAlchemyPlugin
+
+app = Moxie(title="SQLAlchemy Moxie App")
+
+# Configure SQLAlchemy (SQLite for development)
+db = SQLAlchemyPlugin(database_url="sqlite+aiosqlite:///./test.db")
+app.install(db)
+
+@app.get("/")
+async def root():
+    return {"message": "SQLAlchemy Plugin installed!"}
+"""
+
+    # Create main.py
+    (project_dir / "app/main.py").write_text(main_py_content)
 
     # Create pyproject.toml
+    deps_str = "\n".join([f'    "{d}",' for d in deps])
     pyproject_toml = project_dir / "pyproject.toml"
     pyproject_toml.write_text(f"""[project]
 name = "{name}"
 version = "0.1.0"
 dependencies = [
-    "moxie-api",
+{deps_str}
 ]
 
 [build-system]

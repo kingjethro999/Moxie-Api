@@ -1,10 +1,11 @@
 from moxie.app import Moxie
 from moxie.background import BackgroundTasks
-from moxie.di.depends import Depends
+from moxie.di.depends import Body, Cookie, Depends, Header, Query
 from moxie.exceptions import HTTPException, MoxieError
 from moxie.request import Request, WebSocket
 from moxie.response import (
     EventSourceResponse,
+    FileResponse,
     HTMLResponse,
     JSONResponse,
     PlainTextResponse,
@@ -26,8 +27,13 @@ __all__ = [
     "PlainTextResponse",
     "StreamingResponse",
     "EventSourceResponse",
+    "FileResponse",
     "HTTPException",
     "MoxieError",
     "Depends",
+    "Query",
+    "Header",
+    "Cookie",
+    "Body",
     "BackgroundTasks",
 ]

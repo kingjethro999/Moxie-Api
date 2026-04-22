@@ -74,21 +74,79 @@ class DependencyResolver:
         path_params: dict[str, Any],
         background_tasks: BackgroundTasks | None = None,
     ) -> dict[str, Any]:
+        from pydantic import BaseModel
+
+        from moxie.di.depends import Body, Header, ParamMarker, Query
+
         sig = inspect.signature(handler)
         resolved_values: dict[str, Any] = {}
         request_cache: dict[Callable[..., Any], Any] = {}
 
         for name, param in sig.parameters.items():
+            annotation = param.annotation
+            default = param.default
+
+            # 1. Special types
+            if annotation is type(request):
+                resolved_values[name] = request
+                continue
+            if annotation is BackgroundTasks:
+                resolved_values[name] = background_tasks
+                continue
+
+            # 2. Explicit Dependencies
+            if isinstance(default, Dependency):
+                resolved_values[name] = await self.container.resolve(
+                    default.dependency, request_cache, path_params, request
+                )
+                continue
+
+            # 3. Path Parameters
             if name in path_params:
                 resolved_values[name] = path_params[name]
-            elif isinstance(param.default, Dependency):
-                resolved_values[name] = await self.container.resolve(
-                    param.default.dependency, request_cache, path_params, request
-                )
-            elif param.annotation is type(request):
-                resolved_values[name] = request
-            elif param.annotation is BackgroundTasks:
-                resolved_values[name] = background_tasks
-            # Add more inference logic here later (e.g. Query, Body)
+                continue
+
+            # 4. Explicit Markers (Query, Header, etc.)
+            if isinstance(default, ParamMarker):
+                param_name = default.alias or name
+                if isinstance(default, Query):
+                    resolved_values[name] = request.query_params.get(
+                        param_name, default.default
+                    )
+                elif isinstance(default, Header):
+                    resolved_values[name] = request.headers.get(
+                        param_name.lower(), default.default
+                    )
+                elif isinstance(default, Body):
+                    body_json = await request.json()
+                    is_pydantic = (
+                        inspect.isclass(annotation) and 
+                        issubclass(annotation, BaseModel)
+                    )
+                    if is_pydantic:
+                        resolved_values[name] = annotation.model_validate(body_json)
+                    else:
+                        resolved_values[name] = body_json
+                continue
+
+            # 5. Implicit Inference
+            if inspect.isclass(annotation) and issubclass(annotation, BaseModel):
+                # Infer as Body
+                body_json = await request.json()
+                resolved_values[name] = annotation.model_validate(body_json)
+                continue
+            
+            # Default to Query if simple type and not in path
+            is_simple_type = (
+                annotation in (str, int, float, bool, None) or 
+                annotation is inspect.Parameter.empty
+            )
+            if is_simple_type:
+                resolved_values[name] = request.query_params.get(name)
+                if (
+                    resolved_values[name] is None and 
+                    default is not inspect.Parameter.empty
+                ):
+                    resolved_values[name] = default
 
         return resolved_values
