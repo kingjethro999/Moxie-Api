@@ -11,9 +11,10 @@ T = TypeVar("T")
 class Request:
     __slots__ = ("scope", "_receive", "_body", "_json", "_form", "_headers")
 
-    def __init__(self, scope: Scope, receive: Receive) -> None:
+    def __init__(self, scope: Scope, receive: Receive, max_size: int | None = None) -> None:
         self.scope = scope
         self._receive = receive
+        self.max_size = max_size
         self._body: bytes | None = None
         self._json: Any = None
         self._form: dict[str, Any] | None = None
@@ -47,11 +48,23 @@ class Request:
 
     async def body(self) -> bytes:
         if self._body is None:
+            from moxie.exceptions import HTTPException
+            
             chunks = []
+            received_size = 0
             while True:
                 message = await self._receive()
                 if message["type"] == "http.request":
-                    chunks.append(message.get("body", b""))
+                    chunk = message.get("body", b"")
+                    received_size += len(chunk)
+                    
+                    if self.max_size is not None and received_size > self.max_size:
+                        raise HTTPException(
+                            413, 
+                            detail=f"Request body too large (max {self.max_size} bytes)"
+                        )
+                        
+                    chunks.append(chunk)
                     if not message.get("more_body", False):
                         break
             self._body = b"".join(chunks)

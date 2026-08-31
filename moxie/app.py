@@ -28,6 +28,7 @@ class Moxie:
         openapi_url: str | None = "/openapi.json",
         swagger_ui_parameters: dict[str, Any] | None = None,
         load_dotenv: bool = True,
+        max_request_size: int = 1024 * 1024, # 1MB default
     ) -> None:
         if load_dotenv:
             load_env()
@@ -35,6 +36,7 @@ class Moxie:
         self.title = title
         self.version = version
         self.description = description
+        self.max_request_size = max_request_size
         self.router = Router()
         self.di_container = DependencyContainer()
         self.di_resolver = DependencyResolver(self.di_container)
@@ -194,7 +196,7 @@ class Moxie:
                 break
 
     async def handle_http(self, scope: Scope, receive: Receive, send: Send) -> None:
-        request = Request(scope, receive)
+        request = Request(scope, receive, max_size=self.max_request_size)
         path = scope["path"]
         method = scope["method"]
 
