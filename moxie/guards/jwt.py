@@ -21,14 +21,14 @@ class JWTGuard(BearerTokenGuard):
         auth_header = request.headers.get("authorization")
         token = auth_header.split(" ")[1] # type: ignore (Checked in super().check)
         
-        # Subclasses should implement decoding and validation
-        # Example using PyJWT:
-        # try:
-        #     payload = jwt.decode(token, self.secret, algorithms=[self.algorithm])
-        #     request.scope["user"] = payload
-        # except jwt.ExpiredSignatureError:
-        #     raise HTTPException(401, detail="Token has expired")
-        # except jwt.InvalidTokenError:
-        #     raise HTTPException(401, detail="Invalid token")
-        
+        await self.validate(token, request)
         request.scope["auth_token"] = token
+
+    async def validate(self, token: str, request: Request) -> None:
+        """
+        Validate the JWT token. 
+        Must be implemented by subclasses.
+        """
+        raise NotImplementedError(
+            "Subclasses of JWTGuard must implement the 'validate' method."
+        )
