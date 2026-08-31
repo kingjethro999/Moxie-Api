@@ -17,11 +17,24 @@ class CORSMiddleware(ASGIMiddleware):
     ) -> None:
         super().__init__(app)
         self.allow_origins = allow_origins or ["*"]
+        if "*" in self.allow_origins:
+            import logging
+            logging.getLogger("moxie").warning(
+                "CORSMiddleware: '*' origin is allowed. This should only be used in "
+                "development and can be dangerous in production."
+            )
         self.allow_methods = allow_methods or [
             "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"
         ]
         self.allow_headers = allow_headers or ["*"]
         self.allow_credentials = allow_credentials
+        
+        if self.allow_credentials and "*" in self.allow_origins:
+            raise ValueError(
+                "CORS: 'allow_credentials' cannot be True when 'allow_origins' is '*'."
+                " Specify exact origins or disable credentials for security."
+            )
+            
         self.expose_headers = expose_headers or []
         self.max_age = max_age
 

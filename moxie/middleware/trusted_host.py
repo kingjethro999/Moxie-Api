@@ -16,6 +16,13 @@ class TrustedHostMiddleware(ASGIMiddleware):
         if allowed_hosts is None:
             allowed_hosts = ["*"]
         
+        if "*" in allowed_hosts:
+            import logging
+            logging.getLogger("moxie").warning(
+                "TrustedHostMiddleware: '*' is allowed. This should only be used in "
+                "development and can be dangerous in production."
+            )
+            
         self.allowed_hosts = allowed_hosts
         self.www_redirect = www_redirect
         self.pattern = self._build_pattern(allowed_hosts)

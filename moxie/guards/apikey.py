@@ -31,4 +31,14 @@ class APIKeyGuard(BaseGuard):
         if not api_key:
             raise HTTPException(401, detail=f"Missing API Key: {self.name}")
         
-        # Subclasses should validate the api_key here
+        await self.validate(api_key, request)
+        request.scope["api_key"] = api_key
+
+    async def validate(self, api_key: str, request: Request) -> None:
+        """
+        Validate the API key. 
+        Must be implemented by subclasses.
+        """
+        raise NotImplementedError(
+            "Subclasses of APIKeyGuard must implement the 'validate' method."
+        )

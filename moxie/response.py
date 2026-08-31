@@ -135,18 +135,20 @@ class FileResponse(Response):
     ) -> None:
         import mimetypes
         import os
+        from pathlib import Path
 
-        self.path = path
+        self.path = os.path.abspath(path)
         self.status_code = status_code
         self.headers = headers or {}
         
-        if not os.path.exists(path):
-            raise RuntimeError(f"File at {path} does not exist")
+        if not os.path.isfile(self.path):
+            raise RuntimeError(f"File at {self.path} does not exist or is not a file")
         
-        self.stat_result = os.stat(path)
+        self.stat_result = os.stat(self.path)
         
         if media_type is None:
-            media_type, _ = mimetypes.guess_type(path)
+            import mimetypes
+            media_type, _ = mimetypes.guess_type(self.path)
             media_type = media_type or "application/octet-stream"
             
         self.media_type = media_type
@@ -156,8 +158,10 @@ class FileResponse(Response):
         self.headers.setdefault("last-modified", last_mod)
         
         if filename:
+            # Escape quotes and newlines to prevent header injection
+            safe_filename = filename.replace('"', '\\"').replace("\n", "").replace("\r", "")
             self.headers.setdefault(
-                "content-disposition", f'attachment; filename="{filename}"'
+                "content-disposition", f'attachment; filename="{safe_filename}"'
             )
         
         super().__init__(None, status_code, self.headers, media_type)
